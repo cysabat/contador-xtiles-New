@@ -1,71 +1,54 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>No Spend Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    :root {
-      --bg: #0f172a;
-      --card: #020617;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --accent: #22c55e;
-      --danger: #dc2626;
-    }
-
-    body.light {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #020617;
-      --muted: #64748b;
-    }
-
     body {
       margin: 0;
-      font-family: Inter, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
       display: flex;
       justify-content: center;
       padding: 20px;
     }
 
-    .container {
+    .app {
       width: 100%;
-      max-width: 480px;
+      max-width: 420px;
     }
 
     .card {
-      background: var(--card);
+      background: #020617;
       border-radius: 16px;
       padding: 20px;
       margin-bottom: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }
 
     h1 {
       font-size: 20px;
-      margin: 0 0 10px;
       text-align: center;
+      margin-bottom: 10px;
     }
 
     .counter {
       font-size: 36px;
-      font-weight: 700;
-      color: var(--accent);
+      font-weight: bold;
+      color: #22c55e;
       text-align: center;
-      margin: 10px 0;
     }
 
     .meta {
       font-size: 14px;
       text-align: center;
-      color: var(--muted);
+      margin-top: 8px;
+      color: #94a3b8;
     }
 
     .progress {
@@ -78,64 +61,53 @@
 
     .progress div {
       height: 100%;
-      background: var(--accent);
+      background: #22c55e;
       width: 0%;
-      transition: width .4s ease;
     }
 
     .stats {
       display: flex;
       justify-content: space-between;
       font-size: 14px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
-    button {
+    input, button {
       width: 100%;
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      font-size: 14px;
-      cursor: pointer;
       margin-top: 10px;
-    }
-
-    .panic {
-      background: var(--danger);
-      color: white;
-    }
-
-    .toggle {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--muted);
-    }
-
-    input {
-      width: 100%;
       padding: 10px;
       border-radius: 10px;
       border: none;
-      margin-top: 8px;
       font-size: 14px;
     }
 
-    canvas {
-      margin-top: 10px;
+    input {
+      background: #1e293b;
+      color: white;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .panic {
+      background: #dc2626;
+      color: white;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
+  <div class="app">
 
     <div class="card">
       <h1>💰 Dias sem gastar dinheiro</h1>
+
       <div class="counter" id="counter">0 dias</div>
 
       <div class="meta">
-        Meta: <input id="goalInput" type="number" min="1" />
-        dias
+        Meta (dias):
+        <input type="number" id="goal" min="1">
       </div>
 
       <div class="progress">
@@ -143,12 +115,11 @@
       </div>
 
       <div class="stats">
-        <div>🏆 Recorde: <span id="record">0</span> dias</div>
-        <div>📅 Desde: <span id="since"></span></div>
+        <div>🏆 Recorde: <span id="record">0</span></div>
+        <div>📅 Desde: <span id="since">-</span></div>
       </div>
 
       <button class="panic" onclick="panic()">🚨 Gastei dinheiro</button>
-      <button class="toggle" onclick="toggleTheme()">🌗 Modo claro / escuro</button>
     </div>
 
     <div class="card">
@@ -163,11 +134,16 @@
     start: "ns_start",
     record: "ns_record",
     history: "ns_history",
-    goal: "ns_goal",
-    theme: "ns_theme"
+    goal: "ns_goal"
   };
 
-  const now = () => Date.now();
+  function now() {
+    return Date.now();
+  }
+
+  function daysBetween(ms) {
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  }
 
   function getStart() {
     let s = localStorage.getItem(STORAGE.start);
@@ -178,98 +154,13 @@
     return Number(s);
   }
 
-  function getDays(diff) {
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
-  }
-
-  function update() {
+  function updateUI() {
     const start = getStart();
     const diff = now() - start;
-    const days = getDays(diff);
+    const days = daysBetween(diff);
 
-    document.getElementById("counter").innerText = `${days} dias`;
+    document.getElementById("counter").innerText = days + " dias";
     document.getElementById("since").innerText =
       new Date(start).toLocaleDateString("pt-BR");
 
-    const record = Number(localStorage.getItem(STORAGE.record) || 0);
-    if (days > record) {
-      localStorage.setItem(STORAGE.record, days);
-    }
-    document.getElementById("record").innerText =
-      localStorage.getItem(STORAGE.record);
-
-    const goal = Number(localStorage.getItem(STORAGE.goal) || 30);
-    document.getElementById("goalInput").value = goal;
-
-    const progress = Math.min((days / goal) * 100, 100);
-    document.getElementById("progressBar").style.width = progress + "%";
-
-    if (days === goal) {
-      alert("🎉 Parabéns! Você bateu sua meta!");
-    }
-  }
-
-  function panic() {
-    const reason = prompt("O que você comprou?");
-    if (!reason) return;
-
-    const history = JSON.parse(localStorage.getItem(STORAGE.history) || "[]");
-    history.push({
-      date: new Date().toLocaleDateString("pt-BR"),
-      days: getDays(now() - getStart()),
-      reason
-    });
-
-    localStorage.setItem(STORAGE.history, JSON.stringify(history));
-    localStorage.setItem(STORAGE.start, now());
-    updateChart();
-    update();
-  }
-
-  function updateChart() {
-    const history = JSON.parse(localStorage.getItem(STORAGE.history) || "[]");
-
-    chart.data.labels = history.map(h => h.date);
-    chart.data.datasets[0].data = history.map(h => h.days);
-    chart.update();
-  }
-
-  document.getElementById("goalInput").addEventListener("change", e => {
-    localStorage.setItem(STORAGE.goal, e.target.value);
-    update();
-  });
-
-  function toggleTheme() {
-    document.body.classList.toggle("light");
-    localStorage.setItem(
-      STORAGE.theme,
-      document.body.classList.contains("light") ? "light" : "dark"
-    );
-  }
-
-  if (localStorage.getItem(STORAGE.theme) === "light") {
-    document.body.classList.add("light");
-  }
-
-  const ctx = document.getElementById("chart");
-  const chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "Dias sem gastar",
-        data: [],
-      }]
-    },
-    options: {
-      plugins: { legend: { display: false } }
-    }
-  });
-
-  updateChart();
-  update();
-  setInterval(update, 60000);
-</script>
-
-</body>
-</html>
+    let record = Number(localStor
